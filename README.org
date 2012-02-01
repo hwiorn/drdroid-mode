@@ -1,12 +1,16 @@
 * emacs minor mode for android application development
  emacs로 android 개발하기 위해서 있으면 좋을 것 같은 기능들
 
-** 1.0.0.0 추가예정 [0/13]
+** 1.0.0.0 추가예정 [2/14]
 *** TODO android-mode 기능 지원
 *** TODO ant 컴파일을 위한 build 파일 추가
 *** TODO 메뉴 목록 지원
-*** TODO start app, uninstall app 시 package list 선택
-*** TODO device list 선택
+*** DONE uninstall app 시 package list 선택
+    CLOSED: [2012-02-02 Thu 00:59]
+**** DONE package list 생성
+     CLOSED: [2012-02-02 Thu 00:21]
+*** DONE device list 선택
+    CLOSED: [2012-02-02 Thu 00:20]
 *** TODO project 생성 지원
 *** TODO activity추가시 manifest추가
 *** TODO layout 파일 수정시 droiddraw 실행 가능
@@ -15,3 +19,4 @@
 *** TODO sdk, droiddraw등 위치 변경이 되는 것들은 다른 파일로 저장
 *** TODO android의 xml파일 스키마 지원
 *** TODO color 팔레트 사용
+*** TODO 실행시 console 창 띄우기
