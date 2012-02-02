@@ -108,6 +108,34 @@
 					 ))))))
       package-list)))
 
+;; android avd 목록을 갱신
+(defun drdroid-get-avd-list ()
+  (when (drdroid-check-device-or-re-select)
+    (let ((found t)
+	  (avd-list ()))
+      (with-temp-buffer
+	(insert (shell-command-to-string "android list avd"))
+	(goto-char (point-min))
+	(forward-line)
+	(while found
+	  (setq found (search-forward "Name: " nil t))
+	  (when found
+	    (let* ((found-point (point))
+		   (avd-name (progn
+				  (end-of-line)
+				  (buffer-substring found-point (point))))
+		   (target-found (search-forward "Target: " nil t))
+		   (avd-target (progn
+				 (end-of-line)
+				 (if target-found
+				     (buffer-substring target-found (point))
+				   ""))))
+	      (setq avd-list (append avd-list
+					 (list (format "%s(%s)" avd-name avd-target))
+					 ))))))
+      avd-list)))
+
+
 ;; package 선택 목록을 만들고 선택하게 되면 지운다
 (defun drdroid-uninstall-app (&rest package)
   (interactive)
