@@ -44,7 +44,7 @@
 (defun drdroid-check-valid-device-id ()
   (drdroid-get-device-list)
   (when (null (member drdroid-selected-device drdroid-device-list))
-	      (setq drdroid-selected-device ())))
+    (setq drdroid-selected-device ())))
 
 ;; device 를 하나 선택
 (defun drdroid-select-device ()
@@ -122,8 +122,8 @@
 	  (when found
 	    (let* ((found-point (point))
 		   (avd-name (progn
-				  (end-of-line)
-				  (buffer-substring found-point (point))))
+			       (end-of-line)
+			       (buffer-substring found-point (point))))
 		   (target-found (search-forward "Target: " nil t))
 		   (avd-target (progn
 				 (end-of-line)
@@ -131,8 +131,8 @@
 				     (buffer-substring target-found (point))
 				   ""))))
 	      (setq avd-list (append avd-list
-					 (list (format "%s(%s)" avd-name avd-target))
-					 ))))))
+				     (list (format "%s(%s)" avd-name avd-target))
+				     ))))))
       avd-list)))
 
 
@@ -143,10 +143,10 @@
     (let* ((package-list (drdroid-get-package-list))
 	   (package-selected ())
 	   (init-package (if package
-				 package
-			       (if (null package-list)
-				   ""
-				 (car package-list)))))
+			     package
+			   (if (null package-list)
+			       ""
+			     (car package-list)))))
       (when package-list
 	(completing-read "select package : "
 			 package-list
@@ -155,9 +155,107 @@
 			 init-package
 			 'package-selected)
 	(when (and (listp package-selected)
-	       (y-or-n-p (format "do you really want to uninstall this package[%s] " (car package-selected))))
+		   (y-or-n-p (format "do you really want to uninstall this package[%s] " (car package-selected))))
 	  (message (adb-command drdroid-selected-device (format "uninstall \"%s\"" (car package-selected))))) 
-      ))))
+	))))
+
+(defun drdroid-manifest-directory ()
+  "d:/dev/workspace/android_msfa/"
+  )
+(defun drdroid-get-drawable-list ()
+  ;;TODO:get file-list
+  )
+(defun drdroid-get-string-list ()
+  (let ((found t)
+	(string-list ()))
+    (with-temp-buffer
+      (insert-file (concat (drdroid-manifest-directory) "res/values/strings.xml" ))
+      (goto-char (point-min))
+      (forward-line)
+      (while found
+	(setq found (search-forward "<string " nil t))
+	(when found
+	  (let* ((found-point (point))
+		 (string-name (drdroid-xml-get-attribute "name")))
+	    (setq string-list (append string-list
+				      (list string-name)
+				      ))))))
+    string-list))
+
+(defun drdroid-directory-files-recurs (dir &optional include-regexp)
+  "Get all the files in DIR, and any subdirectories of DIR, whose
+names match INCLUDE-REGEXP."
+  (let (files)
+    (loop for file in (directory-files dir) do
+	  (if (not (equal (substring file 0 1) "."))
+	      (let ((file (concat dir "/" file)))
+		(if (file-directory-p file)
+		    (setq files (append files (drdroid-directory-files-recurs file include-regexp)))
+		  (if (or (not include-regexp)
+			  (string-match include-regexp file))
+		      (setq files (append files (list file))))))))
+    files))
+
+(defmacro define-drdroid-get-res-list (res-type)
+  `(defun ,(intern (concat "drdroid-get-" res-type "-list")) ()
+     (let ((list ()))
+       (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
+	 (let ((only-file-name
+		(file-name-sans-extension (file-name-nondirectory directory)))
+	       (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
+	   (when (and
+		  (not (equal only-file-name "."))
+		  (file-directory-p dir-path)
+		  (string-match (concat "^" ,res-type ".*") only-file-name))
+	     (setq list (append list
+				(mapcar (lambda (x)
+					  (file-name-sans-extension (file-name-nondirectory x)))
+					(drdroid-directory-files-recurs dir-path))))
+	     )))
+       (delete-dups list))))
+(define-drdroid-get-res-list "drawable")
+(define-drdroid-get-res-list "layout")
+(define-drdroid-get-res-list "anim")
+(define-drdroid-get-res-list "color")
+
+(defun drdroid-get-array-list ())
+(defun drdroid-get-total-color-list ()
+  (let ((found t)
+	(color-list ()))
+    (with-temp-buffer
+      (insert-file (concat (drdroid-manifest-directory) "res/values/colors.xml" ))
+      (goto-char (point-min))
+      (forward-line)
+      (while found
+	(setq found (search-forward "<color " nil t))
+	(when found
+	  (let* ((found-point (point))
+		 (color-name (drdroid-xml-get-attribute "name")))
+	    (setq color-list (append color-list
+				     (list color-name)
+				     ))))))
+    (append color-list
+	    (drdroid-get-color-list))
+    ))  
+
+
+(defun drdroid-get-style-list ()
+  (let ((found t)
+	(style-list ()))
+    (with-temp-buffer
+      (insert-file (concat (drdroid-manifest-directory) "res/values/style.xml" ))
+      (goto-char (point-min))
+      (forward-line)
+      (while found
+	(setq found (search-forward "<style " nil t))
+	(when found
+	  (let* ((found-point (point))
+		 (style-name (drdroid-xml-get-attribute "name")))
+	    (setq style-list (append style-list
+				     (list style-name)
+				     ))))))
+    style-list))  
+
 
 ;; android-mode support tool
 ;; 지원해야 할 목록들
