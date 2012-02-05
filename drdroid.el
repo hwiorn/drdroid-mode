@@ -163,29 +163,15 @@
 	))))
 
 (defun drdroid-manifest-directory ()
-  "d:/dev/workspace/android_msfa/"
+;;  "d:/dev/workspace/android_msfa/"
+  "/home/ormak/android-sdk-linux/platforms/android-7/data/"
   )
 
-(defun drdroid-get-string-list ()
-  (let ((found t)
-	(string-list ())
-	(xml-file (concat (drdroid-manifest-directory) "res/values/strings.xml" )))
-    (when (file-exists-p xml-file)
-      (with-temp-buffer
-	(insert-file xml-file)
-	(goto-char (point-min))
-	(forward-line)
-	(while found
-	  (setq found (search-forward "<string " nil t))
-	  (when found
-	    (let* ((found-point (point))
-		   (string-name (drdroid-xml-get-attribute "name")))
-	      (setq string-list (append string-list
-				      (list string-name)
-				      ))))))
-      string-list)))
+(defun drdroid-get-res-android-list ()
 
-(defun drdroid-get-string-list ()
+  )
+
+(defun drdroid-get-res-string-list ()
   (let ((found t)
 	(string-list ()))
     (with-temp-buffer
@@ -202,7 +188,7 @@
 				      ))))))
     string-list))
 
-(defun drdroid-get-attr-list ()
+(defun drdroid-get-res-attr-list ()
   (let ((found t)
 	(attr-list ())
 	(xml-file (concat (drdroid-manifest-directory) "res/values/attr.xml" )))
@@ -236,33 +222,62 @@ names match INCLUDE-REGEXP."
 		      (setq files (append files (list file))))))))
     files))
 
+;; (defmacro define-drdroid-get-res-list (res-type)
+;;   `(defun ,(intern (concat "drdroid-get-res-" res-type "-list")) ()
+;;      (let ((list ()))
+;;        (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
+;; 	 (let ((only-file-name
+;; 		(file-name-sans-extension (file-name-nondirectory directory)))
+;; 	       (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
+;; 	   (when (and
+;; 		  (not (equal only-file-name "."))
+;; 		  (file-directory-p dir-path)
+;; 		  (string-match (concat "^" ,res-type ".*") only-file-name))
+;; 	     (setq list (append list
+;; 				(mapcar (lambda (x)
+;; 					  (file-name-sans-extension (file-name-nondirectory x)))
+;; 					(drdroid-directory-files-recurs dir-path))))
+;; 	     )))
+;;        (delete-dups list))))
+
 (defmacro define-drdroid-get-res-list (res-type)
-  `(defun ,(intern (concat "drdroid-get-" res-type "-list")) ()
-     (let ((list ()))
+  `(defun ,(intern (concat "drdroid-get-res-" res-type "-list")) ()
+     (let ((total-list ()))
        (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
-	 (let ((only-file-name
+	 (let ((list ())
+	       (tag-type ())
+	       (only-file-name
 		(file-name-sans-extension (file-name-nondirectory directory)))
 	       (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
 	   (when (and
 		  (not (equal only-file-name "."))
 		  (file-directory-p dir-path)
-		  (string-match (concat "^" ,res-type ".*") only-file-name))
-	     (setq list (append list
-				(mapcar (lambda (x)
+		  (string-match (concat ,res-type "\\-*\\(.*\\)") only-file-name))
+	     (setq tag-type (match-string 1 only-file-name))
+	     (when (or (null tag-type)
+		       (equal tag-type ""))
+	       (setq tag-type "-"))
+	     
+	     (setq list (mapcar (lambda (x)
 					  (file-name-sans-extension (file-name-nondirectory x)))
-					(drdroid-directory-files-recurs dir-path))))
+					(drdroid-directory-files-recurs dir-path)))
+	 (delete-dups list)
+	 (setq total-list (cons (append (list tag-type) list) total-list))
 	     )))
-       (delete-dups list))))
+       total-list)))
+
 (define-drdroid-get-res-list "drawable")
 (define-drdroid-get-res-list "layout")
 (define-drdroid-get-res-list "anim")
 (define-drdroid-get-res-list "color")
+(define-drdroid-get-res-list "raw")
+(define-drdroid-get-res-list "xml")
 
 ;;${sdk-root}/platforms/${android-version}/data/res
 (defun drdroid-get-base-resource-list ()
   )
 
-(defun drdroid-get-total-color-list ()
+(defun drdroid-get-res-total-color-list ()
   (let ((found t)
 	(color-list ())
 	(xml-file (concat (drdroid-manifest-directory) "res/values/colors.xml" )))
@@ -280,9 +295,9 @@ names match INCLUDE-REGEXP."
 				       (list color-name)
 				       ))))))
       (append color-list
-	      (drdroid-get-color-list)))))
+	      (drdroid-get-res-color-list)))))
 
-(defun drdroid-get-style-list ()
+(defun drdroid-get-res-style-list ()
   (let ((found t)
 	(style-list ())
 	(xml-file (concat (drdroid-manifest-directory) "res/values/style.xml" )))
@@ -301,30 +316,60 @@ names match INCLUDE-REGEXP."
 				      ))))))
       style-list)))
 
-(defun drdroid-get-id-list ()
-  (let ((list ())
-	(id ()))
-  (with-temp-buffer
-       (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
-	 (let ((only-file-name
-		(file-name-sans-extension (file-name-nondirectory directory)))
-	       (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
-	   (when (and
-		  (not (equal only-file-name "."))
-		  (file-directory-p dir-path)
-		  (string-match (concat "^layout.*") only-file-name))
-	     (dolist (file (drdroid-directory-files-recurs dir-path))
-	       (insert-file file))
-	     
-	     )))
-       ;;delete "@id/" or "@+id/"
-       (goto-char (point-min))
-       (replace-regexp "\\@\\+*id/" "")
-       
-       (goto-char (point-min))       
-       (while (setq id (drdroid-xml-get-attribute "android:id"))
-	 	 (setq list (append list (list id)))))
-  (delete-dups list)))
+(defun drdroid-get-res-id-list ()
+  (let ((total-list ()))
+    (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
+      (let ((list ())
+	    (id ())
+	    (only-file-name
+	     (file-name-sans-extension (file-name-nondirectory directory)))
+	    (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
+	(when (and
+	       (not (equal only-file-name "."))
+	       (file-directory-p dir-path)
+	       (string-match "^layout\\-*\\(.*\\)" only-file-name))
+	  (setq tag-type (match-string 1 only-file-name))
+	  (when (or (null tag-type)
+		    (equal tag-type ""))
+	    (setq tag-type "-"))
+	  (with-temp-buffer	     
+	    (dolist (file (drdroid-directory-files-recurs dir-path))
+	      (insert-file file))
+
+	    ;;delete "@id/" or "@+id/"
+	    (goto-char (point-min))
+	    (replace-regexp "\\@\\+*\\(android:\\)*id/" "")
+	    
+	    (goto-char (point-min))       
+	    (while (setq id (drdroid-xml-get-attribute "android:id"))
+	      (setq list (append list (list id))))
+	    (delete-dups list)
+	    (setq total-list (cons (append (list tag-type) list) total-list))	    
+	    ))))
+    total-list))
+
+(defun drdroid-extract-total-value-list-of-res (res-list)
+  (let ((xxx ()))
+    (dolist (x res-list)
+      (setq xxx (append xxx (cdr x))))
+    xxx))
+
+(defun drdroid-extract-total-tag-list-of-res (res-list)
+  (let ((xxx ()))
+    (dolist (x res-list)
+      (setq xxx (append xxx (list (car x)))))
+    xxx))
+
+;; resource list에서 해당하는 id를 찾으면 그게 어떤 tag를 가진것인지 list화
+;; ooo를 찾고 있는데 drawable-ee/ooo 라면 ee를 검색
+(defun drdroid-find-resource-list (res-list key)
+  (let ((xxx ()))
+    (dolist (list res-list)
+      (dolist (value (cdr list))
+	(when (equal key value)
+	  (setq xxx (cons (car list) xxx)))))
+    xxx))
+
 
 ;; android-mode support tool
 ;; 지원해야 할 목록들
