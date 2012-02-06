@@ -75,18 +75,18 @@
 ;; 태그
 (defun drdroid-xml-get-attribute (attribute)
   (let ((beg-attr
-;;	 (format "%s=\"" attribute))
+	 ;;	 (format "%s=\"" attribute))
 	 (format "%s[^\\r]*=[^\\r]*\\B\"" attribute))
 	(end-attr "\"")
 	(beg-point 0)
 	(end-point 0))
     (when (search-forward-regexp beg-attr nil t)
-;;    (when (search-forward beg-attr nil t)
-    (setq beg-point (point))
-    (search-forward end-attr nil t)
-    (backward-char (length end-attr))
-    (setq end-point (point))
-    (buffer-substring beg-point end-point))))
+      ;;    (when (search-forward beg-attr nil t)
+      (setq beg-point (point))
+      (search-forward end-attr nil t)
+      (backward-char (length end-attr))
+      (setq end-point (point))
+      (buffer-substring beg-point end-point))))
 
 ;; android package 목록을 갱신
 (defun drdroid-get-package-list ()
@@ -163,14 +163,57 @@
 	))))
 
 (defun drdroid-manifest-directory ()
-;;  "d:/dev/workspace/android_msfa/"
-  "/home/ormak/android-sdk-linux/platforms/android-7/data/"
+    "d:/dev/workspace/android_msfa/"
+  ;;"/home/ormak/android-sdk-linux/platforms/android-7/data/"
   )
 
 (defun drdroid-get-res-android-list ()
 
   )
 
+;; activity list와 main activity를 가져온다 
+(defun drdroid-get-manifest-activity-list ()
+  (let ((found t)
+	(activity-list ())
+	(main-activity ())
+	(package-name ())
+	(main-activity-pos 0)
+	(curr-pos 0)
+	(old-pos 0)
+	(xml-file (concat (drdroid-manifest-directory) "AndroidManifest.xml" )))
+    (when (file-exists-p xml-file)
+;;      (with-temp-buffer
+      (with-current-buffer (get-buffer-create "*test*")
+	(insert-file xml-file)
+	(goto-char (point-min))
+	;;search main activity and get a position
+	(setq main-activity-pos (search-forward-regexp "<intent-filter>[^\\r]*<action[^\\r]*android:name[^\\r]*=[^\\r]*\"android.intent.action.MAIN\"\[^\\r]/>[^\\r]*<category[^\\r]*android:name[^\\r]*=[^\\r]*\"android.intent.category.LAUNCHER\"[^\\r]*/>[^\\r]*</intent-filter>"))
+
+	(goto-char (point-min))
+	;;get package-name
+	(setq package-name (drdroid-xml-get-attribute "package"))
+	;;get activity-list
+	(while found
+	  (setq found (search-forward "<activity" nil t))
+	  (when found
+	    (let* ((found-point (point))
+		   (activity-name (drdroid-xml-get-attribute "android:name")))
+	      (setq activity-list (append activity-list
+				      (list activity-name)
+				      ))
+	      ;; matching activity position
+	      (setq curr-pos (- (point) main-activity-pos))
+	      (if (= old-pos 0) (setq old-pos curr-pos))	      
+	      ;;(message "activity %s : %d : %d max %d" activity-name curr-pos old-pos (max old-pos curr-pos))
+	      (when (and main-activity-pos
+			 (< curr-pos 0)
+			 (= (max old-pos curr-pos) curr-pos))
+		(setq old-pos curr-pos)
+		(setq main-activity activity-name))
+	      ))))
+      (list package-name main-activity activity-list))))
+
+;; resource에서 string list를 가져온다.
 (defun drdroid-get-res-string-list ()
   (let ((found t)
 	(string-list ()))

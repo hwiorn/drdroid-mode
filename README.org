@@ -1,3 +1,5 @@
+* this project is not yet started.
+
 * emacs minor mode for android application development
  emacs로 android 개발하기 위해서 있으면 좋을 것 같은 기능들
 
