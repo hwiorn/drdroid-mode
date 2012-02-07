@@ -168,8 +168,11 @@
   )
 
 (defun drdroid-sdk-directory ()
-  "c:/leegg/android-sdk-windows/android-sdk-windows/" )
+;;  "c:/leegg/android-sdk-windows/android-sdk-windows/"
+  "/home/ormak/android-sdk-linux/"
+  )
 
+;; cache파일이 있다면 cache파일을 읽고 없다면, 새로 만든다
 (defun drdroid-get-sdk-resource (sdk-version)
   (let ((cache-name (format "%splatforms/%s/data/__drdroid_cache__"
 		      (drdroid-sdk-directory)
@@ -183,6 +186,7 @@
 	  )
 	sdk-res-cache))
 
+;; sdk의 resource를 묶어 cache로 사용할수있도록 만든다
 (defun drdroid-make-sdk-resource-cache (sdk-version)
   (let ((resource-cache ())
 	(path (format "%splatforms/%s/data/"
@@ -514,24 +518,59 @@ names match INCLUDE-REGEXP."
 
 
 ;;menu
-(defun drdroid-menu)
-(defun drdroid-minor-keymap ()
-  (let ((map (make-sparse-keymap)))
-    (easy-menu-define drdroid-menu map
-      "Dr.Droid Menu"
-      '("Dr.Droid - v1.0.0.0"
-	"----"
-	["ddms" drdroid-start-ddms
-	 :help "launch ddms"]
-	["AVD Manager" drdroid-start-avd-manager
-	 :help "launch avd manager"]
-	["SDK Manager" drdroid-start-sdk-manager
-	 :help "launch sdk manager"]
-	"----"
-	))
-    ;;TODO: define-key
-    map))
+;; (defun drdroid-menu)
+;; (defun drdroid-minor-keymap ()
+;;   (let ((map (make-sparse-keymap)))
+;;     (easy-menu-define drdroid-menu map
+;;       "Dr.Droid Menu"
+;;       '("Dr.Droid - v1.0.0.0"
+;; 	"----"
+;; 	["ddms" drdroid-start-ddms
+;; 	 :help "launch ddms"]
+;; 	["AVD Manager" drdroid-start-avd-manager
+;; 	 :help "launch avd manager"]
+;; 	["SDK Manager" drdroid-start-sdk-manager
+;; 	 :help "launch sdk manager"]
+;; 	"----"
+;; 	))
+;;     ;;TODO: define-key
+;;     ma
+;;    p))
 
 ;;현재 임시 디렉토리는 temporary-file-directory 변수 참조
 ;;windows에서 에러날때가 있긴 한가봄
 
+
+(defun drdroid-make-menu ()
+;; menu를 만든다
+(define-key-after
+  global-map
+  [menu-bar drdroid-menu]
+  (cons "Dr.Droid" (make-sparse-keymap "drdroid-menu"))
+  'tools)
+
+(define-key
+  global-map
+  [menu-bar drdroid-menu xml-helper]
+  (cons "Android XML" (make-sparse-keymap "drdroid-menu android-xml")))
+(define-key
+  global-map
+  [menu-bar drdroid-menu xml-helper sdk-resource]
+  (cons "android:" (make-sparse-keymap "drdroid-menu xml-helper sdk-resource")))
+(let* ((res-data (drdroid-get-sdk-resource "android-7"))
+       (raw-data (plist-get res-data :raw))
+       (drawable-data (plist-get  res-data :drawable)) 
+       )
+  ;; raw item
+  (when raw-data
+    (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw]
+      (cons "raw" (make-sparse-keymap)))
+    ;;item이 하나밖에 생성이 안됨
+  (dolist (item (drdroid-extract-total-value-list-of-res raw-data))
+    (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw (intern item)]
+      (cons item ()))
+    )
+    )
+  )
+
+)
