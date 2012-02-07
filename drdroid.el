@@ -167,12 +167,41 @@
   ;;"/home/ormak/android-sdk-linux/platforms/android-7/data/"
   )
 
-(defun drdroid-get-res-android-list ()
+(defun drdroid-sdk-directory ()
+  "c:/leegg/android-sdk-windows/android-sdk-windows/" )
 
-  )
+(defun drdroid-get-sdk-resource (sdk-version)
+  (let ((cache-name (format "%splatforms/%s/data/__drdroid_cache__"
+		      (drdroid-sdk-directory)
+		      sdk-version))
+	(sdk-res-cache ()))
+	(if (file-exists-p cache-name)
+	  ;;TODO: load cache & set cache
+	    (setq sdk-res-cache ())
+	  (setq sdk-res-cache (drdroid-make-sdk-resource-cache sdk-version))
+	  ;;TODO: save cache
+	  )
+	sdk-res-cache))
+
+(defun drdroid-make-sdk-resource-cache (sdk-version)
+  (let ((resource-cache ())
+	(path (format "%splatforms/%s/data/"
+		      (drdroid-sdk-directory)
+		      sdk-version)))
+  (when (and sdk-version
+	     (not (equal "" sdk-version))
+	     (file-directory-p path))
+    (setq resource-cache (plist-put resource-cache :raw (drdroid-get-res-raw-list path)))
+    (setq resource-cache (plist-put resource-cache :drawable (drdroid-get-res-drawable-list path)))
+    (setq resource-cache (plist-put resource-cache :string (drdroid-get-res-string-list path)))
+    (setq resource-cache (plist-put resource-cache :xml (drdroid-get-res-xml-list path)))
+    (setq resource-cache (plist-put resource-cache :layout (drdroid-get-res-layout-list path)))
+    (setq resource-cache (plist-put resource-cache :anim (drdroid-get-res-anim-list path)))
+    (setq resource-cache (plist-put resource-cache :color (drdroid-get-res-total-color-list path))))
+  resource-cache))
 
 ;; activity list와 main activity를 가져온다 
-(defun drdroid-get-manifest-activity-list ()
+(defun drdroid-get-manifest-activity-list (directory)
   (let ((found t)
 	(activity-list ())
 	(main-activity ())
@@ -180,10 +209,9 @@
 	(main-activity-pos 0)
 	(curr-pos 0)
 	(old-pos 0)
-	(xml-file (concat (drdroid-manifest-directory) "AndroidManifest.xml" )))
+	(xml-file (concat directory "AndroidManifest.xml" )))
     (when (file-exists-p xml-file)
-;;      (with-temp-buffer
-      (with-current-buffer (get-buffer-create "*test*")
+      (with-temp-buffer
 	(insert-file xml-file)
 	(goto-char (point-min))
 	;;search main activity and get a position
@@ -214,11 +242,11 @@
       (list package-name main-activity activity-list))))
 
 ;; resource에서 string list를 가져온다.
-(defun drdroid-get-res-string-list ()
+(defun drdroid-get-res-string-list (directory)
   (let ((found t)
 	(string-list ()))
     (with-temp-buffer
-      (insert-file (concat (drdroid-manifest-directory) "res/values/strings.xml" ))
+      (insert-file (concat directory "res/values/strings.xml" ))
       (goto-char (point-min))
       (forward-line)
       (while found
@@ -231,10 +259,10 @@
 				      ))))))
     string-list))
 
-(defun drdroid-get-res-attr-list ()
+(defun drdroid-get-res-attr-list (directory)
   (let ((found t)
 	(attr-list ())
-	(xml-file (concat (drdroid-manifest-directory) "res/values/attr.xml" )))
+	(xml-file (concat directory "res/values/attr.xml" )))
     (when (file-exists-p xml-file)
       (with-temp-buffer
 	(insert-file xml-file)
@@ -284,14 +312,14 @@ names match INCLUDE-REGEXP."
 ;;        (delete-dups list))))
 
 (defmacro define-drdroid-get-res-list (res-type)
-  `(defun ,(intern (concat "drdroid-get-res-" res-type "-list")) ()
+  `(defun ,(intern (concat "drdroid-get-res-" res-type "-list")) (path)
      (let ((total-list ()))
-       (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
+       (dolist (directory (directory-files (concat path "res/")))
 	 (let ((list ())
 	       (tag-type ())
 	       (only-file-name
 		(file-name-sans-extension (file-name-nondirectory directory)))
-	       (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
+	       (dir-path (concat path "res/" directory)))
 	   (when (and
 		  (not (equal only-file-name "."))
 		  (file-directory-p dir-path)
@@ -320,10 +348,10 @@ names match INCLUDE-REGEXP."
 (defun drdroid-get-base-resource-list ()
   )
 
-(defun drdroid-get-res-total-color-list ()
+(defun drdroid-get-res-total-color-list (directory)
   (let ((found t)
 	(color-list ())
-	(xml-file (concat (drdroid-manifest-directory) "res/values/colors.xml" )))
+	(xml-file (concat directory "res/values/colors.xml" )))
     (when (file-exists-p xml-file)
       (with-temp-buffer
 	(insert-file xml-file)
@@ -338,12 +366,12 @@ names match INCLUDE-REGEXP."
 				       (list color-name)
 				       ))))))
       (append color-list
-	      (drdroid-get-res-color-list)))))
+	      (drdroid-get-res-color-list directory)))))
 
-(defun drdroid-get-res-style-list ()
+(defun drdroid-get-res-style-list (directory)
   (let ((found t)
 	(style-list ())
-	(xml-file (concat (drdroid-manifest-directory) "res/values/style.xml" )))
+	(xml-file (concat directory "res/values/style.xml" )))
     (when (file-exists-p xml-file)
       (with-temp-buffer
 	(insert-file xml-file)
@@ -359,14 +387,14 @@ names match INCLUDE-REGEXP."
 				      ))))))
       style-list)))
 
-(defun drdroid-get-res-id-list ()
+(defun drdroid-get-res-id-list (directory)
   (let ((total-list ()))
-    (dolist (directory (directory-files (concat (drdroid-manifest-directory) "res/")))
+    (dolist (directory (directory-files (concat directory "res/")))
       (let ((list ())
 	    (id ())
 	    (only-file-name
 	     (file-name-sans-extension (file-name-nondirectory directory)))
-	    (dir-path (concat (drdroid-manifest-directory) "res/" directory)))
+	    (dir-path (concat directory "res/" directory)))
 	(when (and
 	       (not (equal only-file-name "."))
 	       (file-directory-p dir-path)
