@@ -543,33 +543,46 @@ names match INCLUDE-REGEXP."
 
 (defun drdroid-make-menu ()
 ;; menu를 만든다
-(define-key-after
-  global-map
-  [menu-bar drdroid-menu]
-  (cons "Dr.Droid" (make-sparse-keymap "drdroid-menu"))
-  'tools)
+  (easy-menu-define drdroid-menu  global-map "Dr.Droid" '("Dr.Droid"))					
+  (easy-menu-add-item drdroid-menu
+		      nil ["Android XML" nil t])
+  (easy-menu-add-item drdroid-menu '("Android XML")
+		      ["@android:" latex-letter-skeleton
+		       t])
+;; menu
+;; (define-key-after
+;;   global-map
+;;   [menu-bar drdroid-menu]
+;;   (cons "Dr.Droid" (make-sparse-keymap "drdroid-menu"))
+;;   'tools)
 
-(define-key
-  global-map
-  [menu-bar drdroid-menu xml-helper]
-  (cons "Android XML" (make-sparse-keymap "drdroid-menu android-xml")))
-(define-key
-  global-map
-  [menu-bar drdroid-menu xml-helper sdk-resource]
-  (cons "android:" (make-sparse-keymap "drdroid-menu xml-helper sdk-resource")))
+;; (define-key
+;;   global-map
+;;   [menu-bar drdroid-menu xml-helper]
+;;   (cons "Android XML" (make-sparse-keymap "drdroid-menu android-xml")))
+;; (define-key
+;;   global-map
+;;   [menu-bar drdroid-menu xml-helper sdk-resource]
+;;   (cons "android:" (make-sparse-keymap "drdroid-menu xml-helper sdk-resource")))
+  
 (let* ((res-data (drdroid-get-sdk-resource "android-7"))
        (raw-data (plist-get res-data :raw))
        (drawable-data (plist-get  res-data :drawable)) 
        )
-  ;; raw item
-  (when raw-data
-    (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw]
-      (cons "raw" (make-sparse-keymap)))
+  ;;FIXME: raw item
+  ;; (when raw-data
+  ;;   (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw]
+  ;;     (cons "raw" (make-sparse-keymap)))
+    (when raw-data
+      (easy-menu-add-item drdroid-menu '("Android XML" ("@android:"))
+			  ["raw" latex-letter-skeleton
+			   t]))
+
     ;;item이 하나밖에 생성이 안됨
-  (dolist (item (drdroid-extract-total-value-list-of-res raw-data))
-    (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw (intern item)]
-      (cons item ()))
-    )
+  ;; (dolist (item (drdroid-extract-total-value-list-of-res raw-data))
+  ;;   (define-key global-map [menu-bar drdroid-menu xml-helper sdk-resource raw (intern item)]
+  ;;     (cons item ()))
+  ;;   )
     )
   )
 
