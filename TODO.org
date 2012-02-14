@@ -1,5 +1,3 @@
-* this project is not yet started.
-
 * emacs minor mode for android application development
  emacs로 android 개발하기 위해서 있으면 좋을 것 같은 기능들
 
@@ -22,3 +20,4 @@
 *** TODO android의 xml파일 스키마 지원
 *** TODO color 팔레트 사용
 *** TODO 실행시 console 창 띄우기
+ 
